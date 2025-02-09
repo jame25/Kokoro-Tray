@@ -139,7 +139,7 @@ namespace KokoroTray
                             string voice = Settings.Instance.GetSetting<string>("Voice", "af_heart");
                             float speed = Settings.Instance.GetSetting<float>("Speed", 1.0f);
                             Logger.Info($"Using voice: {voice}, speed: {speed}");
-                            await PlayTTSAsync(clipText, voice, speed);
+                            await ttsService.PlayTTSAsync(clipText, voice, speed);
                         }
                         catch (Exception ex)
                         {
