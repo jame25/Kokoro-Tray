@@ -106,6 +106,14 @@ namespace KokoroTray
                 clipboardTimer = new System.Windows.Forms.Timer();
                 clipboardTimer.Interval = 500; // Check every 500ms
                 clipboardTimer.Tick += ClipboardTimer_Tick;
+
+                // Store initial clipboard content without reading it
+                if (Clipboard.ContainsText())
+                {
+                    lastClipboardText = Clipboard.GetText().Trim();
+                    Logger.Info($"Stored initial clipboard content ({lastClipboardText.Length} chars) without reading");
+                }
+
                 Logger.Info("Clipboard monitor initialized successfully");
             }
             catch (Exception ex)
@@ -471,7 +479,7 @@ namespace KokoroTray
         private void OnSettings(object sender, EventArgs e)
         {
             Logger.Info("Opening settings dialog");
-            using (var form = new SettingsForm())
+            using (var form = new SettingsForm(ttsService))
             {
                 if (form.ShowDialog() == DialogResult.OK)
                 {
