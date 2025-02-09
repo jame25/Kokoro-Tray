@@ -29,21 +29,19 @@ namespace KokoroTray
         public TTSServiceManager(string modelPath, string voicesPath)
         {
             Logger.Info($"Initializing TTSServiceManager with modelPath: {modelPath}, voicesPath: {voicesPath}");
-            var modelDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
-            Directory.CreateDirectory(modelDir);
             Directory.CreateDirectory(voicesPath);
 
             // Set up the KokoroSharp logger to use our logger
             KokoroLogger.SetLogger(new KokoroTrayLogger());
 
-            var modelFilePath = Path.Combine(modelDir, MODEL_FILENAME);
-            if (!File.Exists(modelFilePath))
+            if (!File.Exists(modelPath))
             {
-                Logger.Info($"Model file not found at {modelFilePath}, downloading...");
-                DownloadModel(modelPath, modelFilePath);
+                Logger.Info($"Model file not found at {modelPath}, downloading...");
+                var modelUrl = "https://github.com/taylorchu/kokoro-onnx/releases/download/v0.2.0/kokoro.onnx";
+                DownloadModel(modelUrl, modelPath);
             }
 
-            tts = new KokoroTTS(modelFilePath);
+            tts = new KokoroTTS(modelPath);
             Logger.Info($"Loading voices from path: {voicesPath}");
             KokoroVoiceManager.LoadVoicesFromPath(voicesPath);
             Logger.Info($"Loaded {KokoroVoiceManager.Voices.Count} voices");
