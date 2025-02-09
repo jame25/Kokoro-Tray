@@ -23,15 +23,18 @@ Kokoro Tray is a small system tray utility for Windows, that utilizes [Kokoro-TT
 - Download the voice pack from [here](https://github.com/jame25/Kokoro-Tray/releases/).
 - <b>Extract all of the above into the same directory</b>.
 
-## Configuration:
+## Dictionary Rules:
 
+Keywords found in the **ignore.dict** file are skipped over. 
+
+If a keyword in the **banned.dict** file is detected, the entire line is skipped.
+
+**replace.dict** functions as a replacement for a keyword or phrase, i.e LHC=Large Hadron Collider
 
 ## Thanks:
 
 Thanks to the Kokoro-TTS team for their inovation and ingenuity.
 Special thanks to Lyrcaxis for [KokoroSharp](https://github.com/Lyrcaxis/KokoroSharp).
-
-
 
 ## Support:
 
