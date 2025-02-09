@@ -15,6 +15,7 @@ namespace KokoroTray
     public class TTSServiceManager : IDisposable
     {
         internal KokoroTTS tts;
+        private DictionaryManager dictionaryManager;
         private bool isInitialized = false;
         private bool isPlaying = false;
         private bool isPaused = false;
@@ -40,6 +41,11 @@ namespace KokoroTray
                 var modelUrl = "https://github.com/taylorchu/kokoro-onnx/releases/download/v0.2.0/kokoro.onnx";
                 DownloadModel(modelUrl, modelPath);
             }
+
+            // Initialize dictionary manager with a 'Dict' directory in the application's directory
+            var dictionaryPath = Path.Combine(AppContext.BaseDirectory, "dict");
+            dictionaryManager = new DictionaryManager(dictionaryPath);
+            Logger.Info($"Initialized dictionary manager with path: {dictionaryPath}");
 
             tts = new KokoroTTS(modelPath);
             Logger.Info($"Loading voices from path: {voicesPath}");
@@ -105,6 +111,17 @@ namespace KokoroTray
                 Logger.Info($"  - Text length: {text?.Length ?? 0} characters");
                 Logger.Info($"  - Voice ID: {voiceId}");
                 Logger.Info($"  - Current speed setting: {currentSpeed}x");
+
+                // Process text through dictionary manager
+                text = dictionaryManager.ProcessText(text);
+                Logger.Info($"  - Text length after dictionary processing: {text?.Length ?? 0} characters");
+
+                // If text is empty after processing, return empty stream
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    Logger.Info("Text is empty after dictionary processing, returning empty stream");
+                    return new MemoryStream();
+                }
 
                 var voice = KokoroVoiceManager.GetVoice(voiceId);
                 Logger.Info($"Found voice: {voice.Name} (Language: {voice.Language}, Gender: {voice.Gender})");
@@ -245,7 +262,20 @@ namespace KokoroTray
             {
                 await EnsureTTSServiceInitialized();
                 Logger.Info($"Starting audio generation for text with {text.Length} chars and approximately {text.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries).Length} sentences");
-                Logger.Info($"Text content: {text}");
+                Logger.Info($"Original text content: {text}");
+                
+                // Process text through dictionary manager
+                text = dictionaryManager.ProcessText(text);
+                Logger.Info($"Text after dictionary processing: {text.Length} chars");
+                Logger.Info($"Processed text content: {text}");
+
+                // If text is empty after processing, return early
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    Logger.Info("Text is empty after dictionary processing, skipping TTS");
+                    return;
+                }
+                
                 Logger.Info($"Using speed: {speed}x");
                 
                 var voiceObj = KokoroVoiceManager.GetVoice(voice);
