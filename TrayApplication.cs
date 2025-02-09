@@ -198,9 +198,15 @@ namespace KokoroTray
                 }
 
                 Logger.Info("Initializing TTS service");
-                var modelUrl = "https://github.com/taylorchu/kokoro-onnx/releases/download/v0.2.0/kokoro.onnx";
+                var modelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "kokoro.onnx");
+                if (!File.Exists(modelPath))
+                {
+                    throw new FileNotFoundException(
+                        "Model file 'kokoro.onnx' not found. Please download it from https://github.com/taylorchu/kokoro-onnx/releases/download/v0.2.0/kokoro.onnx " +
+                        "and place it in the application directory.", modelPath);
+                }
                 var voicesPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "voices");
-                ttsService = new TTSServiceManager(modelUrl, voicesPath);
+                ttsService = new TTSServiceManager(modelPath, voicesPath);
                 Logger.Info("TTS service initialized successfully");
             }
             catch (Exception ex)
