@@ -23,8 +23,26 @@ namespace KokoroTray
         private TabPage appearanceTab;
         private TabPage hotkeysTab;
         private TabPage presetsTab;
+        private TabPage dictionariesTab;
         private Button saveButton;
         private Button cancelButton;
+
+        // Dictionary tab controls
+        private ListBox ignoreListBox;
+        private ListBox bannedListBox;
+        private ListBox replaceListBox;
+        private TextBox ignoreTextBox;
+        private TextBox bannedTextBox;
+        private TextBox replaceTextBox;
+        private TextBox replaceValueTextBox;
+        private Button ignoreAddButton;
+        private Button bannedAddButton;
+        private Button replaceAddButton;
+        private Button ignoreRemoveButton;
+        private Button bannedRemoveButton;
+        private Button replaceRemoveButton;
+        private DictionaryManager dictionaryManager;
+        private TTSServiceManager ttsService;
 
         // Presets tab controls
         private TextBox[] presetNameBoxes;
@@ -37,8 +55,9 @@ namespace KokoroTray
         private TextBox[] hotkeyKeys;
         private CheckBox[] hotkeyEnabled;
 
-        public SettingsForm()
+        public SettingsForm(TTSServiceManager ttsService)
         {
+            this.ttsService = ttsService;
             InitializeComponent();
             LoadCurrentSettings();
             this.Icon = Properties.Resources.AppIcon;
@@ -64,15 +83,18 @@ namespace KokoroTray
             appearanceTab = new TabPage("Appearance");
             hotkeysTab = new TabPage("Hotkeys");
             presetsTab = new TabPage("Presets");
+            dictionariesTab = new TabPage("Dictionaries");
 
             InitializeAppearanceTab();
             InitializeHotkeysTab();
             InitializePresetsTab();
+            InitializeDictionariesTab();
 
             // Add tabs to TabControl
             tabControl.TabPages.Add(appearanceTab);
             tabControl.TabPages.Add(hotkeysTab);
             tabControl.TabPages.Add(presetsTab);
+            tabControl.TabPages.Add(dictionariesTab);
 
             // Set Presets tab as default
             tabControl.SelectedTab = presetsTab;
@@ -442,6 +464,295 @@ namespace KokoroTray
             };
         }
 
+        private void InitializeDictionariesTab()
+        {
+            // Initialize dictionary manager
+            var dictionaryPath = Path.Combine(AppContext.BaseDirectory, "dict");
+            dictionaryManager = new DictionaryManager(dictionaryPath);
+
+            // Panel for ignore dictionary
+            var ignorePanel = new Panel
+            {
+                Location = new Point(10, 10),
+                Size = new Size(140, 250)
+            };
+
+            var ignoreLabel = new Label
+            {
+                Text = "Ignore Words",
+                Location = new Point(0, 0),
+                Size = new Size(140, 20),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font(this.Font, FontStyle.Bold)
+            };
+
+            ignoreListBox = new ListBox
+            {
+                Location = new Point(0, 25),
+                Size = new Size(140, 150),
+                SelectionMode = SelectionMode.One
+            };
+
+            ignoreTextBox = new TextBox
+            {
+                Location = new Point(0, 180),
+                Size = new Size(140, 23),
+                PlaceholderText = "Enter word to ignore"
+            };
+
+            ignoreAddButton = new Button
+            {
+                Text = "Add",
+                Location = new Point(0, 210),
+                Size = new Size(65, 23)
+            };
+
+            ignoreRemoveButton = new Button
+            {
+                Text = "Remove",
+                Location = new Point(75, 210),
+                Size = new Size(65, 23)
+            };
+
+            // Panel for banned dictionary
+            var bannedPanel = new Panel
+            {
+                Location = new Point(160, 10),
+                Size = new Size(140, 250)
+            };
+
+            var bannedLabel = new Label
+            {
+                Text = "Banned Phrases",
+                Location = new Point(0, 0),
+                Size = new Size(140, 20),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font(this.Font, FontStyle.Bold)
+            };
+
+            bannedListBox = new ListBox
+            {
+                Location = new Point(0, 25),
+                Size = new Size(140, 150),
+                SelectionMode = SelectionMode.One
+            };
+
+            bannedTextBox = new TextBox
+            {
+                Location = new Point(0, 180),
+                Size = new Size(140, 23),
+                PlaceholderText = "Enter phrase to ban"
+            };
+
+            bannedAddButton = new Button
+            {
+                Text = "Add",
+                Location = new Point(0, 210),
+                Size = new Size(65, 23)
+            };
+
+            bannedRemoveButton = new Button
+            {
+                Text = "Remove",
+                Location = new Point(75, 210),
+                Size = new Size(65, 23)
+            };
+
+            // Panel for replace dictionary
+            var replacePanel = new Panel
+            {
+                Location = new Point(310, 10),
+                Size = new Size(140, 250)
+            };
+
+            var replaceLabel = new Label
+            {
+                Text = "Replacements",
+                Location = new Point(0, 0),
+                Size = new Size(140, 20),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font(this.Font, FontStyle.Bold)
+            };
+
+            replaceListBox = new ListBox
+            {
+                Location = new Point(0, 25),
+                Size = new Size(140, 150),
+                SelectionMode = SelectionMode.One
+            };
+
+            replaceTextBox = new TextBox
+            {
+                Location = new Point(0, 180),
+                Size = new Size(140, 23),
+                PlaceholderText = "Word to replace"
+            };
+
+            replaceValueTextBox = new TextBox
+            {
+                Location = new Point(0, 205),
+                Size = new Size(140, 23),
+                PlaceholderText = "Replacement text"
+            };
+
+            replaceAddButton = new Button
+            {
+                Text = "Add",
+                Location = new Point(0, 230),
+                Size = new Size(65, 23)
+            };
+
+            replaceRemoveButton = new Button
+            {
+                Text = "Remove",
+                Location = new Point(75, 230),
+                Size = new Size(65, 23)
+            };
+
+            // Add event handlers
+            ignoreAddButton.Click += (s, e) => {
+                if (!string.IsNullOrWhiteSpace(ignoreTextBox.Text))
+                {
+                    ignoreListBox.Items.Add(ignoreTextBox.Text.Trim());
+                    ignoreTextBox.Clear();
+                }
+            };
+
+            ignoreRemoveButton.Click += (s, e) => {
+                if (ignoreListBox.SelectedIndex != -1)
+                {
+                    ignoreListBox.Items.RemoveAt(ignoreListBox.SelectedIndex);
+                }
+            };
+
+            bannedAddButton.Click += (s, e) => {
+                if (!string.IsNullOrWhiteSpace(bannedTextBox.Text))
+                {
+                    bannedListBox.Items.Add(bannedTextBox.Text.Trim());
+                    bannedTextBox.Clear();
+                }
+            };
+
+            bannedRemoveButton.Click += (s, e) => {
+                if (bannedListBox.SelectedIndex != -1)
+                {
+                    bannedListBox.Items.RemoveAt(bannedListBox.SelectedIndex);
+                }
+            };
+
+            replaceAddButton.Click += (s, e) => {
+                if (!string.IsNullOrWhiteSpace(replaceTextBox.Text) && !string.IsNullOrWhiteSpace(replaceValueTextBox.Text))
+                {
+                    replaceListBox.Items.Add($"{replaceTextBox.Text.Trim()}={replaceValueTextBox.Text.Trim()}");
+                    replaceTextBox.Clear();
+                    replaceValueTextBox.Clear();
+                }
+            };
+
+            replaceRemoveButton.Click += (s, e) => {
+                if (replaceListBox.SelectedIndex != -1)
+                {
+                    replaceListBox.Items.RemoveAt(replaceListBox.SelectedIndex);
+                }
+            };
+
+            // Add controls to panels
+            ignorePanel.Controls.AddRange(new Control[] {
+                ignoreLabel,
+                ignoreListBox,
+                ignoreTextBox,
+                ignoreAddButton,
+                ignoreRemoveButton
+            });
+
+            bannedPanel.Controls.AddRange(new Control[] {
+                bannedLabel,
+                bannedListBox,
+                bannedTextBox,
+                bannedAddButton,
+                bannedRemoveButton
+            });
+
+            replacePanel.Controls.AddRange(new Control[] {
+                replaceLabel,
+                replaceListBox,
+                replaceTextBox,
+                replaceValueTextBox,
+                replaceAddButton,
+                replaceRemoveButton
+            });
+
+            // Add panels to tab
+            dictionariesTab.Controls.AddRange(new Control[] {
+                ignorePanel,
+                bannedPanel,
+                replacePanel
+            });
+
+            // Load dictionary contents
+            LoadDictionaryContents();
+        }
+
+        private void LoadDictionaryContents()
+        {
+            var dictionaryPath = Path.Combine(AppContext.BaseDirectory, "dict");
+
+            // Load ignore dictionary
+            var ignorePath = Path.Combine(dictionaryPath, "ignore.dict");
+            if (File.Exists(ignorePath))
+            {
+                var ignoreWords = File.ReadAllLines(ignorePath)
+                    .Where(line => !string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
+                    .Select(line => line.Trim());
+                ignoreListBox.Items.AddRange(ignoreWords.ToArray());
+            }
+
+            // Load banned dictionary
+            var bannedPath = Path.Combine(dictionaryPath, "banned.dict");
+            if (File.Exists(bannedPath))
+            {
+                var bannedPhrases = File.ReadAllLines(bannedPath)
+                    .Where(line => !string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
+                    .Select(line => line.Trim());
+                bannedListBox.Items.AddRange(bannedPhrases.ToArray());
+            }
+
+            // Load replacements dictionary
+            var replacePath = Path.Combine(dictionaryPath, "replace.dict");
+            if (File.Exists(replacePath))
+            {
+                var replacements = File.ReadAllLines(replacePath)
+                    .Where(line => !string.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
+                    .Select(line => line.Trim());
+                replaceListBox.Items.AddRange(replacements.ToArray());
+            }
+        }
+
+        private void SaveDictionaryContents()
+        {
+            var dictionaryPath = Path.Combine(AppContext.BaseDirectory, "dict");
+            Directory.CreateDirectory(dictionaryPath);
+
+            // Save ignore dictionary
+            var ignorePath = Path.Combine(dictionaryPath, "ignore.dict");
+            File.WriteAllLines(ignorePath, ignoreListBox.Items.Cast<string>());
+
+            // Save banned dictionary
+            var bannedPath = Path.Combine(dictionaryPath, "banned.dict");
+            File.WriteAllLines(bannedPath, bannedListBox.Items.Cast<string>());
+
+            // Save replacements dictionary
+            var replacePath = Path.Combine(dictionaryPath, "replace.dict");
+            File.WriteAllLines(replacePath, replaceListBox.Items.Cast<string>());
+
+            // Reload the dictionaries in both DictionaryManager instances
+            dictionaryManager.ReloadDictionaries();
+            if (ttsService != null)
+            {
+                ttsService.ReloadDictionaries();
+            }
+        }
+
         private void LoadCurrentSettings()
         {
             // Load preset settings
@@ -470,6 +781,7 @@ namespace KokoroTray
 
         private void SaveButton_Click(object sender, EventArgs e)
         {
+            SaveDictionaryContents();
             try
             {
                 var settingsToUpdate = new Dictionary<string, object>();
