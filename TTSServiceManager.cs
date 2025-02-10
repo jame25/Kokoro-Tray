@@ -319,6 +319,13 @@ namespace KokoroTray
             }
         }
 
+        public void ReloadDictionaries()
+        {
+            Logger.Info("Reloading dictionaries in TTSServiceManager");
+            dictionaryManager.ReloadDictionaries();
+            Logger.Info("Dictionaries reloaded successfully");
+        }
+
         public void Dispose()
         {
             tts?.Dispose();
