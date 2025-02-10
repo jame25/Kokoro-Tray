@@ -9,8 +9,8 @@ Kokoro Tray is a small system tray utility for Windows, that utilizes [Kokoro-TT
 * Many voices to choose from
 * Change voice model
 * Control speech rate
-* Presets support
-* Hotkeys support
+* Presets
+* Hotkeys
 * Pronunciation dictionaries support
 
 ## Prerequisites:
