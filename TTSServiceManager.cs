@@ -326,6 +326,11 @@ namespace KokoroTray
             Logger.Info("Dictionaries reloaded successfully");
         }
 
+        public string ProcessText(string text)
+        {
+            return dictionaryManager.ProcessText(text);
+        }
+
         public void Dispose()
         {
             tts?.Dispose();
