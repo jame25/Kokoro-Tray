@@ -147,7 +147,7 @@ namespace KokoroTray
                             string voice = Settings.Instance.GetSetting<string>("Voice", "af_heart");
                             float speed = Settings.Instance.GetSetting<float>("Speed", 1.0f);
                             Logger.Info($"Using voice: {voice}, speed: {speed}");
-                            await ttsService.PlayTTSAsync(clipText, voice, speed);
+                            await PlayTTSAsync(clipText, voice, speed);
                         }
                         catch (Exception ex)
                         {
@@ -275,6 +275,7 @@ namespace KokoroTray
 
                 stopSpeechItem = new ToolStripMenuItem("Stop Speech", null, OnStopSpeech);
                 stopSpeechItem.Visible = Settings.Instance.GetSetting<bool>("ShowStopSpeech", true);
+                stopSpeechItem.Enabled = false;  // Start disabled since there's no playback initially
 
                 pauseResumeItem = new ToolStripMenuItem("Pause | Resume", null, OnPauseResume);
                 pauseResumeItem.Visible = Settings.Instance.GetSetting<bool>("ShowPauseResume", false);  // Hidden by default
@@ -382,16 +383,18 @@ namespace KokoroTray
             try
             {
                 Logger.Info("Stop Speech requested");
-                if (ttsService?.tts != null && isPlaying)
+                if (ttsService?.tts != null)
                 {
+                    Logger.Info("Stopping TTS playback");
                     ttsService.tts.StopPlayback();
                     isPlaying = false;
+                    ttsService.SetPlaybackState(false, false);
                     UpdateTrayMenuState();
                     Logger.Info("Speech playback stopped by user");
                 }
                 else
                 {
-                    Logger.Info("No active speech playback to stop");
+                    Logger.Info("No TTS service available to stop");
                 }
             }
             catch (Exception ex)
@@ -405,13 +408,16 @@ namespace KokoroTray
             try
             {
                 Logger.Info($"Updating tray menu state - Current state: isPlaying={isPlaying}, ttsService?.IsPaused={ttsService?.IsPaused}");
-                var stopSpeechItem = trayIcon.ContextMenuStrip.Items[1] as ToolStripMenuItem;
+                
+                // Update Stop Speech menu item
                 if (stopSpeechItem != null)
                 {
-                    stopSpeechItem.Enabled = isPlaying;
-                    Logger.Info($"Updated stopSpeechItem.Enabled={stopSpeechItem.Enabled}");
+                    bool shouldBeEnabled = isPlaying && ttsService?.tts != null;
+                    stopSpeechItem.Enabled = shouldBeEnabled;
+                    Logger.Info($"Updated stopSpeechItem.Enabled={stopSpeechItem.Enabled} (isPlaying={isPlaying}, ttsService?.tts != null={ttsService?.tts != null})");
                 }
 
+                // Update Pause/Resume menu item
                 if (pauseResumeItem != null)
                 {
                     bool wasPaused = pauseResumeItem.Text == "Resume";
@@ -430,40 +436,56 @@ namespace KokoroTray
             }
         }
 
-        private async Task PlayTTSAsync(string text, string voice, float speed = DefaultTTSSpeed)
+        public async Task PlayTTSAsync(string text, string voice, float speed = DefaultTTSSpeed)
         {
             try
             {
                 await EnsureTTSServiceInitialized();
                 Logger.Info($"Starting audio generation for text with {text.Length} chars and approximately {text.Split(new[] { '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries).Length} sentences");
                 Logger.Info($"Text content: {text}");
+                text = ttsService.ProcessText(text);
+                Logger.Info($"Using speed: {speed}x");
+                
+                // If text is empty after processing, return early
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    Logger.Info("Text is empty after dictionary processing, skipping TTS");
+                    return;
+                }
+                
                 Logger.Info($"Using speed: {speed}x");
                 
                 var voiceObj = KokoroVoiceManager.GetVoice(voice);
                 var config = new KokoroSharp.Processing.KokoroTTSPipelineConfig(new KokoroSharp.Processing.DefaultSegmentationConfig());
                 config.Speed = speed;  // Set the speed before calling SpeakFast
-                var handle = ttsService.tts.SpeakFast(text, voiceObj, config);
-                
-                // Set the playing state before starting playback
-                ttsService.SetPlaybackState(true, false);
+
+                // Set the playing state and update menu BEFORE starting playback
                 isPlaying = true;
+                ttsService.SetPlaybackState(true, false);
+                Logger.Info($"Set isPlaying to {isPlaying} and updated playback state");
                 UpdateTrayMenuState();
+                Logger.Info("Updated tray menu state before playback");
+
+                var handle = ttsService.tts.SpeakFast(text, voiceObj, config);
                 
                 // Wait for completion
                 var completionSource = new TaskCompletionSource<bool>();
                 handle.OnSpeechCompleted += (packet) => {
                     Logger.Info("Speech completed successfully");
+                    isPlaying = false;
+                    ttsService.SetPlaybackState(false, false);
+                    UpdateTrayMenuState();
                     completionSource.TrySetResult(true);
                 };
                 handle.OnSpeechCanceled += (packet) => {
                     Logger.Info("Speech was cancelled");
+                    isPlaying = false;
+                    ttsService.SetPlaybackState(false, false);
+                    UpdateTrayMenuState();
                     completionSource.TrySetResult(false);
                 };
                 
                 await completionSource.Task;
-                isPlaying = false;
-                ttsService.SetPlaybackState(false, false);
-                UpdateTrayMenuState();
                 Logger.Info("Playback completed");
             }
             catch (Exception ex)
