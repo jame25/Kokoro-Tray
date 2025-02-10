@@ -19,7 +19,7 @@ Kokoro Tray is a small system tray utility for Windows, that utilizes [Kokoro-TT
 ## Install:
 
 - Download the latest version of Kokoro Tray from [releases](https://github.com/jame25/Kokoro-Tray/releases/).
-- Grab the latest base voice model from [here](https://github.com/taylorchu/kokoro-onnx/releases/).
+- Grab the latest base voice model (kokoro.onnx) from [here](https://github.com/taylorchu/kokoro-onnx/releases/).
 - Download the voice pack from [here](https://github.com/jame25/Kokoro-Tray/releases/).
 - <b>Extract all of the above into the same directory</b>.
 
