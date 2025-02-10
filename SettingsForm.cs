@@ -24,6 +24,7 @@ namespace KokoroTray
         private TabPage hotkeysTab;
         private TabPage presetsTab;
         private TabPage dictionariesTab;
+        private TabPage miscTab;  // New miscellaneous tab
         private Button saveButton;
         private Button cancelButton;
 
@@ -84,17 +85,20 @@ namespace KokoroTray
             hotkeysTab = new TabPage("Hotkeys");
             presetsTab = new TabPage("Presets");
             dictionariesTab = new TabPage("Dictionaries");
+            miscTab = new TabPage("Miscellaneous");
 
             InitializeAppearanceTab();
             InitializeHotkeysTab();
             InitializePresetsTab();
             InitializeDictionariesTab();
+            InitializeMiscTab();
 
             // Add tabs to TabControl
             tabControl.TabPages.Add(appearanceTab);
             tabControl.TabPages.Add(hotkeysTab);
             tabControl.TabPages.Add(presetsTab);
             tabControl.TabPages.Add(dictionariesTab);
+            tabControl.TabPages.Add(miscTab);
 
             // Set Presets tab as default
             tabControl.SelectedTab = presetsTab;
@@ -827,6 +831,145 @@ namespace KokoroTray
                 MessageBox.Show("Error saving settings: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 this.DialogResult = DialogResult.None;
             }
+        }
+
+        private void InitializeMiscTab()
+        {
+            // Logging Section
+            var loggingGroupBox = new GroupBox
+            {
+                Text = "Logging",
+                Location = new Point(10, 10),
+                Size = new Size(430, 80)
+            };
+
+            var enableLoggingCheckbox = new CheckBox
+            {
+                Text = "Enable Logging (system.log)",
+                Location = new Point(10, 20),
+                Size = new Size(400, 20),
+                Checked = Settings.Instance.GetSetting<bool>("EnableLogging", false)  // Default to false
+            };
+
+            var loggingPathLabel = new Label
+            {
+                Text = $"Log file location: {Path.Combine(AppContext.BaseDirectory, "system.log")}",
+                Location = new Point(10, 45),
+                Size = new Size(400, 20),
+                Font = new Font(this.Font, FontStyle.Italic)
+            };
+
+            loggingGroupBox.Controls.AddRange(new Control[] {
+                enableLoggingCheckbox,
+                loggingPathLabel
+            });
+
+            // Settings Import/Export Section
+            var settingsGroupBox = new GroupBox
+            {
+                Text = "Settings Management",
+                Location = new Point(10, 100),
+                Size = new Size(430, 120)
+            };
+
+            var exportButton = new Button
+            {
+                Text = "Export Settings",
+                Location = new Point(10, 30),
+                Size = new Size(120, 30)
+            };
+
+            var importButton = new Button
+            {
+                Text = "Import Settings",
+                Location = new Point(10, 70),
+                Size = new Size(120, 30)
+            };
+
+            var settingsPathLabel = new Label
+            {
+                Text = $"Settings file location: {Path.Combine(AppContext.BaseDirectory, "settings.conf")}",
+                Location = new Point(140, 35),
+                Size = new Size(280, 20),
+                Font = new Font(this.Font, FontStyle.Italic)
+            };
+
+            settingsGroupBox.Controls.AddRange(new Control[] {
+                exportButton,
+                importButton,
+                settingsPathLabel
+            });
+
+            // Event Handlers
+            enableLoggingCheckbox.CheckedChanged += (s, e) => {
+                Settings.Instance.SetSetting("EnableLogging", enableLoggingCheckbox.Checked);
+                Logger.SetEnabled(enableLoggingCheckbox.Checked);
+            };
+
+            exportButton.Click += (s, e) => {
+                using (var dialog = new SaveFileDialog())
+                {
+                    dialog.Filter = "Configuration files (*.conf)|*.conf|All files (*.*)|*.*";
+                    dialog.FileName = "settings.conf";
+                    dialog.Title = "Export Settings";
+
+                    if (dialog.ShowDialog() == DialogResult.OK)
+                    {
+                        try
+                        {
+                            File.Copy(Settings.SettingsPath, dialog.FileName, true);
+                            MessageBox.Show("Settings exported successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Error exporting settings: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+            };
+
+            importButton.Click += (s, e) => {
+                using (var dialog = new OpenFileDialog())
+                {
+                    dialog.Filter = "Configuration files (*.conf)|*.conf|All files (*.*)|*.*";
+                    dialog.Title = "Import Settings";
+
+                    if (dialog.ShowDialog() == DialogResult.OK)
+                    {
+                        try
+                        {
+                            // Backup current settings
+                            string backupPath = Settings.SettingsPath + ".backup";
+                            File.Copy(Settings.SettingsPath, backupPath, true);
+
+                            // Import new settings
+                            File.Copy(dialog.FileName, Settings.SettingsPath, true);
+                            
+                            var result = MessageBox.Show(
+                                "Settings have been imported successfully. The application needs to restart to apply the changes.\n\nWould you like to restart now?", 
+                                "Restart Required",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Question);
+
+                            if (result == DialogResult.Yes)
+                            {
+                                Application.Restart();
+                                Environment.Exit(0);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Error importing settings: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+            };
+
+            // Add controls to tab
+            miscTab.Controls.AddRange(new Control[] {
+                loggingGroupBox,
+                settingsGroupBox
+            });
         }
     }
 } 
