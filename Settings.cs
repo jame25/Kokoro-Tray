@@ -8,7 +8,7 @@ namespace KokoroTray
     public class Settings
     {
         private static Settings instance;
-        private static readonly string SettingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.conf");
+        public static readonly string SettingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.conf");
         private Dictionary<string, object> settings;
 
         // Event to notify when a setting changes
@@ -37,13 +37,11 @@ namespace KokoroTray
             {
                 if (File.Exists(SettingsPath))
                 {
-                    Logger.Info("Loading settings from settings.conf");
                     string jsonContent = File.ReadAllText(SettingsPath);
                     settings = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonContent);
                 }
                 else
                 {
-                    Logger.Info("Settings file not found, creating with default values");
                     settings = new Dictionary<string, object>
                     {
                         { "Voice", "af_heart" },
@@ -52,6 +50,7 @@ namespace KokoroTray
                         { "MinimumTextLength", 1 },
                         { "MaximumTextLength", 5000 },
                         { "UseGPU", 1 },  // 1 for GPU, 0 for CPU
+                        { "EnableLogging", false },  // Logging disabled by default
                         // Menu visibility settings
                         { "ShowMonitoring", true },
                         { "ShowStopSpeech", true },
@@ -76,7 +75,6 @@ namespace KokoroTray
             }
             catch (Exception ex)
             {
-                Logger.Error("Error loading settings", ex);
                 // Use defaults if loading fails
                 settings = new Dictionary<string, object>
                 {
@@ -86,6 +84,7 @@ namespace KokoroTray
                     { "MinimumTextLength", 1 },
                     { "MaximumTextLength", 5000 },
                     { "UseGPU", 1 },  // 1 for GPU, 0 for CPU
+                    { "EnableLogging", false },  // Logging disabled by default
                     // Menu visibility settings
                     { "ShowMonitoring", true },
                     { "ShowStopSpeech", true },
@@ -112,12 +111,17 @@ namespace KokoroTray
         {
             try
             {
-                Logger.Info("Saving settings to settings.conf");
+                // Only log if logging is enabled
+                if (GetSetting<bool>("EnableLogging", true))
+                {
+                    Logger.Info("Saving settings to settings.conf");
+                }
                 string jsonContent = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(SettingsPath, jsonContent);
             }
             catch (Exception ex)
             {
+                // Always log errors
                 Logger.Error("Error saving settings", ex);
             }
         }
