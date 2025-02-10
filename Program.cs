@@ -21,7 +21,7 @@ namespace KokoroTray
 
             if (!createdNew)
             {
-                Logger.Info("Another instance is already running. Exiting.");
+                // Don't log here since logging might be disabled
                 MessageBox.Show("Another instance of Kokoro Tray is already running.", "Kokoro Tray", 
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
@@ -29,6 +29,9 @@ namespace KokoroTray
 
             try
             {
+                // Initialize logger state from settings before any logging occurs
+                Logger.SetEnabled(Settings.Instance.GetSetting<bool>("EnableLogging", true));
+
                 // To customize application configuration such as set high DPI settings or default font,
                 // see https://aka.ms/applicationconfiguration.
                 ApplicationConfiguration.Initialize();
