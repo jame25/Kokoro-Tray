@@ -174,6 +174,12 @@ namespace KokoroTray
             if (enable && !isMonitoringClipboard)
             {
                 Logger.Info("Starting clipboard monitoring");
+                // Store current clipboard text to prevent immediate reading when monitoring starts
+                if (Clipboard.ContainsText())
+                {
+                    lastClipboardText = Clipboard.GetText().Trim();
+                    Logger.Info($"Stored current clipboard text ({lastClipboardText.Length} chars) to prevent immediate reading");
+                }
                 clipboardTimer.Start();
                 isMonitoringClipboard = true;
                 UpdateMonitoringMenuIcon();
@@ -182,6 +188,12 @@ namespace KokoroTray
             {
                 Logger.Info("Stopping clipboard monitoring");
                 clipboardTimer.Stop();
+                // Store current clipboard text when disabling monitoring
+                if (Clipboard.ContainsText())
+                {
+                    lastClipboardText = Clipboard.GetText().Trim();
+                    Logger.Info($"Stored current clipboard text ({lastClipboardText.Length} chars) before disabling monitoring");
+                }
                 isMonitoringClipboard = false;
                 UpdateMonitoringMenuIcon();
             }
